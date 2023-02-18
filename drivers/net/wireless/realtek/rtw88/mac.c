@@ -1045,6 +1045,9 @@ static int txdma_queue_mapping(struct rtw_dev *rtwdev)
 		else
 			return -EINVAL;
 		break;
+	case RTW_HCI_TYPE_SDIO:
+		rqpn = &chip->rqpn_table[0];
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1206,6 +1209,9 @@ static int priority_queue_cfg(struct rtw_dev *rtwdev)
 			pg_tbl = &chip->page_table[4];
 		else
 			return -EINVAL;
+		break;
+	case RTW_HCI_TYPE_SDIO:
+		pg_tbl = &chip->page_table[0];
 		break;
 	default:
 		return -EINVAL;
