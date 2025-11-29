@@ -1070,18 +1070,10 @@ struct rtl_probe_rsp {
 	struct rtl_info_element info_element[];
 } __packed;
 
-/*LED related.*/
-/*ledpin Identify how to implement this SW led.*/
-struct rtl_led {
-	void *hw;
-	enum rtl_led_pin ledpin;
-	bool ledon;
-};
-
 struct rtl_led_ctl {
 	bool led_opendrain;
-	struct rtl_led sw_led0;
-	struct rtl_led sw_led1;
+	enum rtl_led_pin sw_led0;
+	enum rtl_led_pin sw_led1;
 };
 
 struct rtl_qos_parameters {
@@ -1465,8 +1457,6 @@ struct rtl_io {
 	void (*write8_async)(struct rtl_priv *rtlpriv, u32 addr, u8 val);
 	void (*write16_async)(struct rtl_priv *rtlpriv, u32 addr, u16 val);
 	void (*write32_async)(struct rtl_priv *rtlpriv, u32 addr, u32 val);
-	void (*writen_sync)(struct rtl_priv *rtlpriv, u32 addr, void *buf,
-			    u16 len);
 
 	u8 (*read8_sync)(struct rtl_priv *rtlpriv, u32 addr);
 	u16 (*read16_sync)(struct rtl_priv *rtlpriv, u32 addr);
@@ -1673,8 +1663,6 @@ struct rtl_hal {
 	bool fw_clk_change_in_progress;
 	bool allow_sw_to_change_hwclc;
 	u8 fw_ps_state;
-	/**/
-	bool driver_going2unload;
 
 	/*AMPDU init min space*/
 	u8 minspace_cfg;	/*For Min spacing configurations */
@@ -2289,8 +2277,6 @@ struct rtl_hal_ops {
 	void (*set_key)(struct ieee80211_hw *hw, u32 key_index,
 			u8 *macaddr, bool is_group, u8 enc_algo,
 			bool is_wepkey, bool clear_all);
-	void (*init_sw_leds)(struct ieee80211_hw *hw);
-	void (*deinit_sw_leds)(struct ieee80211_hw *hw);
 	u32 (*get_bbreg)(struct ieee80211_hw *hw, u32 regaddr, u32 bitmask);
 	void (*set_bbreg)(struct ieee80211_hw *hw, u32 regaddr, u32 bitmask,
 			  u32 data);
@@ -2300,7 +2286,6 @@ struct rtl_hal_ops {
 			  u32 regaddr, u32 bitmask, u32 data);
 	void (*linked_set_reg)(struct ieee80211_hw *hw);
 	void (*chk_switch_dmdp)(struct ieee80211_hw *hw);
-	void (*dualmac_easy_concurrent)(struct ieee80211_hw *hw);
 	void (*dualmac_switch_to_dmdp)(struct ieee80211_hw *hw);
 	bool (*phy_rf6052_config)(struct ieee80211_hw *hw);
 	void (*phy_rf6052_set_cck_txpower)(struct ieee80211_hw *hw,
@@ -2336,8 +2321,6 @@ struct rtl_intf_ops {
 	void (*read_efuse_byte)(struct ieee80211_hw *hw, u16 _offset, u8 *pbuf);
 	int (*adapter_start)(struct ieee80211_hw *hw);
 	void (*adapter_stop)(struct ieee80211_hw *hw);
-	bool (*check_buddy_priv)(struct ieee80211_hw *hw,
-				 struct rtl_priv **buddy_priv);
 
 	int (*adapter_tx)(struct ieee80211_hw *hw,
 			  struct ieee80211_sta *sta,
@@ -2465,7 +2448,6 @@ struct rtl_works {
 
 	/*timer */
 	struct timer_list watchdog_timer;
-	struct timer_list dualmac_easyconcurrent_retrytimer;
 	struct timer_list fw_clockoff_timer;
 	struct timer_list fast_antenna_training_timer;
 	/*task */
@@ -2497,14 +2479,6 @@ struct rtl_debug {
 #define MIMO_PS_STATIC			0
 #define MIMO_PS_DYNAMIC			1
 #define MIMO_PS_NOLIMIT			3
-
-struct rtl_dualmac_easy_concurrent_ctl {
-	enum band_type currentbandtype_backfordmdp;
-	bool close_bbandrf_for_dmsp;
-	bool change_to_dmdp;
-	bool change_to_dmsp;
-	bool switch_in_process;
-};
 
 struct rtl_dmsp_ctl {
 	bool activescan_for_slaveofdmsp;
@@ -2588,14 +2562,6 @@ struct dig_t {
 
 	u32 antdiv_rssi_max;
 	u32 rssi_max;
-};
-
-struct rtl_global_var {
-	/* from this list we can get
-	 * other adapter's rtl_priv
-	 */
-	struct list_head glb_priv_list;
-	spinlock_t glb_list_lock;
 };
 
 #define IN_4WAY_TIMEOUT_TIME	(30 * MSEC_PER_SEC)	/* 30 seconds */
@@ -2743,10 +2709,7 @@ struct rtl_scan_list {
 struct rtl_priv {
 	struct ieee80211_hw *hw;
 	struct completion firmware_loading_complete;
-	struct list_head list;
 	struct rtl_priv *buddy_priv;
-	struct rtl_global_var *glb_var;
-	struct rtl_dualmac_easy_concurrent_ctl easy_concurrent_ctl;
 	struct rtl_dmsp_ctl dmsp_ctl;
 	struct rtl_locks locks;
 	struct rtl_works works;
@@ -2831,7 +2794,7 @@ struct rtl_priv {
 	 * beyond  this structure like:
 	 * rtl_pci_priv or rtl_usb_priv
 	 */
-	u8 priv[0] __aligned(sizeof(void *));
+	u8 priv[] __aligned(sizeof(void *));
 };
 
 #define rtl_priv(hw)		(((struct rtl_priv *)(hw)->priv))
