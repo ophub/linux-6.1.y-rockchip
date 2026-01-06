@@ -748,7 +748,9 @@
 		enable-gpios = <&gpio4 RK_PA3 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_LOW>;
 		plugin-det-gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_LOW>;
+
 		continues-clk = <1>;
+		scaler-en = <1>;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&rk628_pins &ref_clk2_clk2>;
