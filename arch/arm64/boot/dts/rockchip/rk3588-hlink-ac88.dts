@@ -135,11 +135,11 @@
 
 	rfkill_modem: rfkill-modem {
 		compatible = "rfkill-gpio";
-		name = "rfkill-modem";
+		label = "rfkill-modem";
 		pinctrl-names = "default";
 		pinctrl-0 = <&modem_reset_pin>;
-		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-		type = "wwan";
+		radio-type = "wwan";
+		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
 	};
 
 	/*
@@ -2238,7 +2238,7 @@
 
 	modem {
 		modem_reset_pin: modem-reset-pin {
-			rockchip,pins = <4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 

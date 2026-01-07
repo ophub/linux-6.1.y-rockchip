@@ -236,11 +236,10 @@
 	rfkill_modem: rfkill-modem {
 		compatible = "rfkill-gpio";
 		label = "rfkill-modem";
-		type = "wwan";
-		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-
 		pinctrl-names = "default";
 		pinctrl-0 = <&modem_reset_en>;
+		radio-type = "wwan";
+		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
 	};
 
 	/* wifi regon support some wifi modules like rtl8723be */

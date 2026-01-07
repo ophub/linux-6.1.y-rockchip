@@ -141,15 +141,6 @@
 		};
 	};
 
-	rfkill_modem: rfkill-modem {
-		compatible = "rfkill-gpio";
-		name = "rfkill-modem";
-		pinctrl-names = "default";
-		pinctrl-0 = <&modem_reset_pin>;
-		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_HIGH>;
-		type = "wwan";
-	};
-
 	/* dc-in or typec-in: maximum supported voltage: 22V */
 	vcc12v_dcin: vcc12v-dcin {
 		compatible = "regulator-fixed";
@@ -449,6 +440,15 @@
 		gpios = <&gpio0 RK_PD4 GPIO_ACTIVE_LOW>;
 		pinctrl-0 = <&ir_int_pin>;
 		pinctrl-names = "default";
+	};
+
+	rfkill_modem: rfkill-modem {
+		compatible = "rfkill-gpio";
+		label = "rfkill-modem";
+		pinctrl-names = "default";
+		pinctrl-0 = <&modem_reset_pin>;
+		radio-type = "wwan";
+		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -1921,7 +1921,7 @@
 		};
 
 		modem_reset_pin: modem-reset-pin {
-			rockchip,pins = <4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_down>;
+			rockchip,pins = <4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
