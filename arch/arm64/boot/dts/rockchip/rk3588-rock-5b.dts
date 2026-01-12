@@ -108,7 +108,7 @@
 		status = "okay";
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
-		rockchip,card-name = "rockchip-hdmi0";
+		rockchip,card-name = "rockchip,hdmi0";
 		rockchip,cpu = <&i2s5_8ch>;
 		rockchip,codec = <&hdmi0>;
 		rockchip,jack-det;
@@ -118,7 +118,7 @@
 		status = "okay";
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
-		rockchip,card-name = "rockchip-hdmi1";
+		rockchip,card-name = "rockchip,hdmi1";
 		rockchip,cpu = <&i2s6_8ch>;
 		rockchip,codec = <&hdmi1>;
 		rockchip,jack-det;
@@ -127,7 +127,7 @@
 	dp0_sound: dp0-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
-		rockchip,card-name= "rockchip-hdmi2";
+		rockchip,card-name= "rockchip,dp0";
 		rockchip,mclk-fs = <512>;
 		rockchip,cpu = <&spdif_tx2>;
 		rockchip,codec = <&dp0 1>;
@@ -137,7 +137,7 @@
 	es8316_sound: es8316-sound {
 		status = "okay";
 		compatible = "rockchip,multicodecs-card";
-		rockchip,card-name = "rockchip-es8316";
+		rockchip,card-name = "rockchip,es8316";
 		rockchip,format = "i2s";
 		rockchip,mclk-fs = <256>;
 		rockchip,cpu = <&i2s0_8ch>;
@@ -201,32 +201,49 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
-	/* If hdmirx node is disabled, delete the reserved-memory node here. */
-	reserved-memory {
+	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
 
-		/* Reserve 256MB memory for hdmirx-controller@fdee0000 */
 		cma {
 			compatible = "shared-dma-pool";
 			reusable;
 			reg = <0x0 (256 * 0x100000) 0x0 (256 * 0x100000)>;
 			linux,cma-default;
 		};
+
+		/* Reserved 128MB memory for hdmirx-controller@fdee0000
+		 * disable the node if hdmirx is disabled
+		 */
+		cma_hdmirx: cma-hdmirx {
+			compatible = "shared-dma-pool";
+			reg = <0x0 (512 * 0x100000) 0x0 (128 * 0x100000)>;
+			reusable;
+		};
 	};
 
-	hdmiin-sound {
+	hdmiin_dc: hdmiin-dc {
+		compatible = "rockchip,dummy-codec";
+		#sound-dai-cells = <0>;
 		status = "okay";
-		compatible = "rockchip,hdmi";
-		rockchip,mclk-fs = <128>;
-		rockchip,format = "i2s";
-		rockchip,bitclock-master = <&hdmirx_ctrler>;
-		rockchip,frame-master = <&hdmirx_ctrler>;
-		rockchip,card-name = "rockchip,hdmiin";
-		rockchip,cpu = <&i2s7_8ch>;
-		rockchip,codec = <&hdmirx_ctrler 0>;
-		rockchip,jack-det;
+	};
+
+	hdmiin_sound: hdmiin-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "rockchip,hdmiin";
+		simple-audio-card,bitclock-master = <&dailink0_master>;
+		simple-audio-card,frame-master = <&dailink0_master>;
+		status = "okay";
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s7_8ch>;
+		};
+
+		dailink0_master: simple-audio-card,codec {
+			sound-dai = <&hdmiin_dc>;
+		};
 	};
 
 	gpio-leds {
@@ -708,13 +725,14 @@
 /* Should work with at least 128MB cma reserved above. */
 &hdmirx_ctrler {
 	status = "okay";
+	cec-enable;
+	memory-region = <&cma_hdmirx>;
 
 	/* Effective level used to trigger HPD: 0-low, 1-high */
 	hpd-trigger-level = <1>;
 	hdmirx-det-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_LOW>;
 	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_det>;
 	pinctrl-names = "default";
-	#sound-dai-cells = <1>;
 };
 
 &i2s5_8ch {
@@ -726,6 +744,8 @@
 };
 
 &i2s7_8ch {
+	rockchip,capture-channels = <2>;
+	rockchip,trcm-sync-rx-only;
 	status = "okay";
 };
 
