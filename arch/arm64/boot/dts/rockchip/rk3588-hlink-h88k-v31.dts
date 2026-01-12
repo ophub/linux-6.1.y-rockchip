@@ -108,8 +108,17 @@
 		cma: cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			size = <0x0 (256 * 0x100000)>;
+			reg = <0x0 (256 * 0x100000) 0x0 (256 * 0x100000)>;
 			linux,cma-default;
+		};
+
+		/* Reserved 128MB memory for hdmirx-controller@fdee0000
+		 * disable the node if hdmirx is disabled
+		 */
+		cma_hdmirx: cma-hdmirx {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 (512 * 0x100000) 0x0 (128 * 0x100000)>;
 		};
 
 		drm_logo: drm-logo@00000000 {
@@ -129,15 +138,6 @@
 			console-size = <0x80000>;
 			ftrace-size = <0x00000>;
 			pmsg-size = <0x50000>;
-		};
-
-		/* Reserve 256MB memory for hdmirx-controller@fdee0000
-		 * remove the node if hdmirx is disabled 
-		 */
-		cma_hdmirx: cma-hdmirx {
-			compatible = "shared-dma-pool";
-			reusable;
-			size = <0x0 (256 * 0x100000)>;
 		};
 	};
 
@@ -377,7 +377,7 @@
 		simple-audio-card,frame-master = <&masterdai>;
 		simple-audio-card,hp-det-gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
 		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,name = "audio-analog";
+		simple-audio-card,name = "rockchip,es8388";
 		simple-audio-card,pin-switches = "Headphones";
 		simple-audio-card,widgets =
 			"Microphone", "Microphone Jack",
@@ -397,7 +397,7 @@
 		status = "okay";
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
-		rockchip,card-name = "audio-hdmi0";
+		rockchip,card-name = "rockchip,hdmi0";
 		rockchip,cpu = <&i2s5_8ch>;
 		rockchip,codec = <&hdmi0>;
 		rockchip,jack-det;
@@ -407,7 +407,7 @@
 		status = "okay";
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
-		rockchip,card-name = "audio-hdmi1";
+		rockchip,card-name = "rockchip,hdmi1";
 		rockchip,cpu = <&i2s6_8ch>;
 		rockchip,codec = <&hdmi1>;
 		rockchip,jack-det;
@@ -416,23 +416,34 @@
 	dp0_sound: dp0-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
-		rockchip,card-name= "audio-dp0";
+		rockchip,card-name= "rockchip,dp0";
 		rockchip,mclk-fs = <512>;
 		rockchip,cpu = <&spdif_tx2>;
 		rockchip,codec = <&dp0 1>;
 		rockchip,jack-det;
 	};
 
+	hdmiin_dc: hdmiin-dc {
+		compatible = "rockchip,dummy-codec";
+		#sound-dai-cells = <0>;
+		status = "okay";
+	};
+
 	hdmiin_sound: hdmiin-sound {
-		compatible = "rockchip,hdmi";
-		rockchip,mclk-fs = <128>;
-		rockchip,format = "i2s";
-		rockchip,bitclock-master = <&hdmirx_ctrler>;
-		rockchip,frame-master = <&hdmirx_ctrler>;
-		rockchip,card-name = "audio-hdmiin";
-		rockchip,cpu = <&i2s7_8ch>;
-		rockchip,codec = <&hdmirx_ctrler 0>;
-		rockchip,jack-det;
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "rockchip,hdmiin";
+		simple-audio-card,bitclock-master = <&dailink0_master>;
+		simple-audio-card,frame-master = <&dailink0_master>;
+		status = "okay";
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s7_8ch>;
+		};
+
+		dailink0_master: simple-audio-card,codec {
+			sound-dai = <&hdmiin_dc>;
+		};
 	};
 
 	ir_receiver: ir-receiver {
@@ -683,6 +694,8 @@
 };
 
 &i2s7_8ch {
+	rockchip,capture-channels = <2>;
+	rockchip,trcm-sync-rx-only;
 	status = "okay";
 };
 
@@ -1281,14 +1294,14 @@
 /* Should work with at least 128MB cma reserved above. */
 &hdmirx_ctrler {
 	status = "okay";
+	cec-enable;
 	memory-region = <&cma_hdmirx>;
 
-	#sound-dai-cells = <1>;
 	/* Effective level used to trigger HPD: 0-low, 1-high */
 	hpd-trigger-level = <1>;
 	hdmirx-det-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_det>;
+	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_det_l>;
 };
 
 &av1d {
@@ -1870,7 +1883,7 @@
 	};
 
 	hdmirx {
-		hdmirx_det: hdmirx-det {
+		hdmirx_det_l: hdmirx-det-l {
 			rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
