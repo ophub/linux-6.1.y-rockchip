@@ -1,0 +1,148 @@
+/dts-v1/;
+
+#include "rk3588s-quarkpi-ca2.dtsi"
+
+/ {
+    model = "Alientek QuarkPI-CA2";
+	compatible = "alientek,quarkpi-ca2", "rockchip,rk3588";
+
+	aliases {
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc;
+	};
+
+    cspmu: cspmu@fd10c000 {
+		compatible = "rockchip,cspmu";
+		reg = <0x0 0xfd10c000 0x0 0x1000>,
+		      <0x0 0xfd10d000 0x0 0x1000>,
+		      <0x0 0xfd10e000 0x0 0x1000>,
+		      <0x0 0xfd10f000 0x0 0x1000>,
+		      <0x0 0xfd12c000 0x0 0x1000>,
+		      <0x0 0xfd12d000 0x0 0x1000>,
+		      <0x0 0xfd12e000 0x0 0x1000>,
+		      <0x0 0xfd12f000 0x0 0x1000>;
+	};
+
+	debug: debug@fd104000 {
+		compatible = "rockchip,debug";
+		reg = <0x0 0xfd104000 0x0 0x1000>,
+		      <0x0 0xfd105000 0x0 0x1000>,
+		      <0x0 0xfd106000 0x0 0x1000>,
+		      <0x0 0xfd107000 0x0 0x1000>,
+		      <0x0 0xfd124000 0x0 0x1000>,
+		      <0x0 0xfd125000 0x0 0x1000>,
+		      <0x0 0xfd126000 0x0 0x1000>,
+		      <0x0 0xfd127000 0x0 0x1000>;
+	};
+
+	fiq_debugger: fiq-debugger {
+		compatible = "rockchip,fiq-debugger";
+		rockchip,serial-id = <2>;
+		rockchip,wake-irq = <0>;
+		/* If enable uart uses irq instead of fiq */
+		rockchip,irq-mode-enable = <1>;
+		rockchip,baudrate = <1500000>;  /* Only 115200 and 1500000 */
+		interrupts = <GIC_SPI 423 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&uart2m0_xfer>;
+		status = "okay";
+	};
+
+	firmware {
+		optee: optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+			status = "okay";
+		};
+	};
+
+	minidump: minidump {
+		compatible = "rockchip,minidump";
+		smem-region = <&minidump_smem>;
+		minidump-region = <&minidump_mem>;
+		status = "disabled";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 (8 * 0x100000)>;
+			linux,cma-default;
+		};
+
+		drm_cubic_lut: drm-cubic-lut@00000000 {
+			compatible = "rockchip,drm-cubic-lut";
+			reg = <0x0 0x0 0x0 0x0>;
+			status = "disabled";
+		};
+
+		ramoops: ramoops@110000 {
+			compatible = "ramoops";
+			/* 0x110000 to 0x1f0000 is for ramoops */
+			reg = <0x0 0x110000 0x0 0xe0000>;
+			boot-log-size = <0x8000>;	/* do not change */
+			boot-log-count = <0x1>;		/* do not change */
+			console-size = <0x80000>;
+			pmsg-size = <0x30000>;
+			ftrace-size = <0x00000>;
+			record-size = <0x14000>;
+		};
+
+		minidump_smem: minidump-smem@1f0000 {
+			reg = <0x0 0x1f0000 0x0 0x100>;		/* do not change */
+			no-map;
+			status = "disabled";
+		};
+
+		minidump_mem: minidump-mem@c000000 {
+			reg = <0x0 0x0c000000 0x0 0x2000000>;	/* changing according to your project */
+			no-map;
+			status = "disabled";
+		};
+
+	};
+};
+
+/* ir_key */
+&pwm3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm3m0_pins>;
+	compatible = "rockchip,remotectl-pwm";
+	remote_pwm_id = <3>;
+	handle_cpu_id = <1>;
+	remote_support_psci = <0>;
+	status = "okay";
+
+
+	ir_key1 {
+		/* 正点原子红外遥控器按键定义: 一共 20 个按键 */
+		rockchip,usercode = <0xFF00>;
+		rockchip,key_table =
+			<0xba KEY_POWER>,
+			<0xb9 KEY_UP>,
+			<0xb8 KEY_HOME>,
+			<0xbb KEY_REWIND>,
+			<0xbf KEY_PLAYPAUSE>,
+			<0xbc KEY_FASTFORWARD>,
+			<0xf8 KEY_VOLUMEDOWN>,
+			<0xea KEY_DOWN>,
+			<0xf6 KEY_VOLUMEUP>,
+			<0xe9 KEY_1>,
+			<0xe6 KEY_2>,
+			<0xf2 KEY_3>,
+			<0xf3 KEY_4>,
+			<0xe7 KEY_5>,
+			<0xa1 KEY_6>,
+			<0xf7 KEY_7>,
+			<0xe3 KEY_8>,
+			<0xa5 KEY_9>,
+			<0xbd KEY_0>,
+			<0xb5 KEY_BACKSPACE>;
+	};
+};
+/* ir_key end */
