@@ -116,3 +116,5 @@ config VIRT_WIFI
 	  are wifi connections through a special rtnetlink device.
 
 endif # WLAN
+
+source "drivers/net/wireless/uwe5622/Kconfig"

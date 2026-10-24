@@ -4266,6 +4266,7 @@ static int hci_setup_link_policy_sync(struct hci_dev *hdev)
 {
 	struct hci_cp_write_def_link_policy cp;
 	u16 link_policy = 0;
+	int err;
 
 	if (!(hdev->commands[5] & 0x10))
 		return 0;
@@ -4283,8 +4284,31 @@ static int hci_setup_link_policy_sync(struct hci_dev *hdev)
 
 	cp.policy = cpu_to_le16(link_policy);
 
-	return __hci_cmd_sync_status(hdev, HCI_OP_WRITE_DEF_LINK_POLICY,
-				     sizeof(cp), &cp, HCI_CMD_TIMEOUT);
+	err = __hci_cmd_sync_status(hdev, HCI_OP_WRITE_DEF_LINK_POLICY,
+				    sizeof(cp), &cp, HCI_CMD_TIMEOUT);
+	/* Unisoc UWE5621DS firmware with HCI/LMP revision 0x0400
+	 * advertises Park support but rejects a policy containing Park with
+	 * Invalid HCI Command Parameters. On this UART controller only, retry
+	 * without Park; retain role switching and Sniff power saving. Do not
+	 * hide transport failures or errors returned by the reduced policy.
+	 */
+	if ((err != -EINVAL && err != HCI_ERROR_INVALID_PARAMETERS) ||
+	    hdev->bus != HCI_UART || hdev->manufacturer != 0x01ec ||
+	    hdev->hci_ver != 0x09 || hdev->hci_rev != 0x0400 ||
+	    hdev->lmp_subver != 0x0400 || !(link_policy & HCI_LP_PARK))
+		return err;
+
+	link_policy &= ~HCI_LP_PARK;
+	cp.policy = cpu_to_le16(link_policy);
+	err = __hci_cmd_sync_status(hdev, HCI_OP_WRITE_DEF_LINK_POLICY,
+				    sizeof(cp), &cp, HCI_CMD_TIMEOUT);
+	if (!err) {
+		hdev->features[0][1] &= ~LMP_PARK;
+		bt_dev_warn(hdev, "Unisoc firmware rejects Park; using link policy 0x%04x",
+			    link_policy);
+	}
+
+	return err;
 }
 
 static int hci_read_page_scan_activity_sync(struct hci_dev *hdev)

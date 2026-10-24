@@ -634,3 +634,5 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rv1126b-xiaoyu-50ipc-dual-cam.dtb
 subdir-y := $(dts-dirs) overlay
 
 # Armbian: Incremental: assuming overlay targets are already in the Makefile
+
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-torder-r10d.dtb
